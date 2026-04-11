@@ -1,3 +1,4 @@
+%%writefile bankmarketing.py
 
 import streamlit as st
 import pandas as pd
@@ -156,212 +157,109 @@ elif page == "📊 Analysis":
 
 # =========================
 # 🤖 ML PAGE
+# =========================# =========================
+
+# 🤖 ML PAGE
+
+# =========================# 🤖 ML PAGE
 # =========================
+
 elif page == "🤖 ML":
     st.title("🤖 Prediction")
     st.markdown("Enter client details to predict subscription:")
     model_choice = st.selectbox("Choose Model", ["XGBoost", "Logistic Regression"])
-    
-    # Get the feature columns from cleaned_df (excluding target 'y')
-    feature_columns = [col for col in df.columns if col != 'y']
-    
+
+    # ✅ IMPORTANT: get correct features from model (NOT df)
+    feature_columns = xgb_model.get_booster().feature_names
+
     st.info(f"Model expects {len(feature_columns)} features")
-    
-    # Create input dictionary with zeros for all columns
+
+    # Create input dictionary with zeros
     input_dict = {col: 0 for col in feature_columns}
-    
+
     # =========================
     # INPUTS
     # =========================
-    
-    # Numerical inputs
-    if 'age' in input_dict:
-        age = st.slider("Age", 18, 100, 30)
-        input_dict['age'] = age
-    
-    if 'campaign' in input_dict:
-        campaign = st.number_input("Number of Campaign Contacts", 0, 50, 1)
-        input_dict['campaign'] = campaign
-    
-    if 'previous' in input_dict:
-        previous = st.number_input("Number of Previous Contacts", 0, 20, 0)
-        input_dict['previous'] = previous
-    
-    if 'pdays' in input_dict:
-        pdays = st.number_input("Days Since Last Contact (-1 = not contacted)", -1, 500, -1)
-        input_dict['pdays'] = pdays
-    
-    st.subheader("Economic Indicators")
-    
-    if 'emp.var.rate' in input_dict:
-        emp_var_rate = st.slider("Employment Variation Rate", -3.0, 2.0, 0.0, 0.1)
-        input_dict['emp.var.rate'] = emp_var_rate
-    
-    if 'cons.price.idx' in input_dict:
-        cons_price = st.slider("Consumer Price Index", 90.0, 100.0, 93.0, 0.1)
-        input_dict['cons.price.idx'] = cons_price
-    
-    if 'cons.conf.idx' in input_dict:
-        cons_conf = st.slider("Consumer Confidence Index", -60.0, 0.0, -40.0, 1.0)
-        input_dict['cons.conf.idx'] = cons_conf
-    
-    if 'euribor3m' in input_dict:
-        euribor = st.slider("Euribor 3 Month Rate", 0.0, 6.0, 2.0, 0.1)
-        input_dict['euribor3m'] = euribor
-    
-    if 'nr.employed' in input_dict:
-        nr_employed = st.slider("Number of Employees", 4000.0, 5500.0, 5000.0, 50.0)
-        input_dict['nr.employed'] = nr_employed
-    
-    st.subheader("Demographic Information")
-    
-    # Job
-    job_cols = [col for col in feature_columns if col.startswith('job_')]
-    if job_cols:
-        job_options = [col.replace('job_', '') for col in job_cols]
+
+    age = st.slider("Age", 18, 100, 30)
+    campaign = st.number_input("Number of Campaign Contacts", 0, 50, 1)
+    previous = st.number_input("Number of Previous Contacts", 0, 20, 0)
+    pdays = st.number_input("Days Since Last Contact (-1 = not contacted)", -1, 500, -1)
+
+    emp_var_rate = st.slider("Employment Variation Rate", -3.0, 2.0, 0.0, 0.1)
+    cons_price = st.slider("Consumer Price Index", 90.0, 100.0, 93.0, 0.1)
+    cons_conf = st.slider("Consumer Confidence Index", -60.0, 0.0, -40.0, 1.0)
+    euribor = st.slider("Euribor 3 Month Rate", 0.0, 6.0, 2.0, 0.1)
+    nr_employed = st.slider("Number of Employees", 4000.0, 5500.0, 5000.0, 50.0)
+
+    # Fill numerical
+    input_dict['campaign'] = campaign
+    input_dict['previous'] = previous
+    input_dict['pdays'] = pdays
+    input_dict['emp.var.rate'] = emp_var_rate
+    input_dict['cons.price.idx'] = cons_price
+    input_dict['cons.conf.idx'] = cons_conf
+    input_dict['euribor3m'] = euribor
+    input_dict['nr.employed'] = nr_employed
+
+    # =========================
+    # CATEGORICAL (ENCODED)
+    # =========================
+
+    job_options = [col.replace('job_', '') for col in feature_columns if col.startswith('job_')]
+    if job_options:
         job = st.selectbox("Job Type", job_options)
         input_dict[f'job_{job}'] = 1
-    
-    # Marital Status
-    marital_cols = [col for col in feature_columns if col.startswith('marital_')]
-    if marital_cols:
-        marital_options = [col.replace('marital_', '') for col in marital_cols]
+
+    marital_options = [col.replace('marital_', '') for col in feature_columns if col.startswith('marital_')]
+    if marital_options:
         marital = st.selectbox("Marital Status", marital_options)
         input_dict[f'marital_{marital}'] = 1
-    
-    # Education
-    edu_cols = [col for col in feature_columns if col.startswith('education_')]
-    if edu_cols:
-        edu_options = [col.replace('education_', '') for col in edu_cols]
+
+    edu_options = [col.replace('education_', '') for col in feature_columns if col.startswith('education_')]
+    if edu_options:
         education = st.selectbox("Education Level", edu_options)
         input_dict[f'education_{education}'] = 1
-    
-    # Housing Loan
-    housing_cols = [col for col in feature_columns if col.startswith('housing_')]
-    if housing_cols:
-        housing_options = [col.replace('housing_', '') for col in housing_cols]
-        housing = st.selectbox("Housing Loan", housing_options)
-        input_dict[f'housing_{housing}'] = 1
-    
-    # Personal Loan
-    loan_cols = [col for col in feature_columns if col.startswith('loan_')]
-    if loan_cols:
-        loan_options = [col.replace('loan_', '') for col in loan_cols]
-        loan = st.selectbox("Personal Loan", loan_options)
-        input_dict[f'loan_{loan}'] = 1
-    
-    # Contact Type
-    contact_cols = [col for col in feature_columns if col.startswith('contact_')]
-    if contact_cols:
-        contact_options = [col.replace('contact_', '') for col in contact_cols]
-        contact = st.selectbox("Contact Type", contact_options)
-        input_dict[f'contact_{contact}'] = 1
-    
-    # Day of Week
-    day_cols = [col for col in feature_columns if col.startswith('day_of_week_')]
-    if day_cols:
-        day_options = [col.replace('day_of_week_', '') for col in day_cols]
-        day = st.selectbox("Day of Week", day_options)
-        input_dict[f'day_of_week_{day}'] = 1
-    
-    # Previous Outcome
-    poutcome_cols = [col for col in feature_columns if col.startswith('poutcome_')]
-    if poutcome_cols:
-        poutcome_options = [col.replace('poutcome_', '') for col in poutcome_cols]
-        poutcome = st.selectbox("Previous Campaign Outcome", poutcome_options)
-        input_dict[f'poutcome_{poutcome}'] = 1
-        
-        # Set prev_success based on poutcome
-        if 'prev_success' in input_dict:
-            prev_success = 1 if poutcome == 'success' else 0
-            input_dict['prev_success'] = prev_success
-    
-    # Month and Season
-    season_cols = [col for col in feature_columns if col.startswith('season_')]
-    if season_cols:
-        month = st.selectbox("Month", ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 
-                                       'jul', 'aug', 'sep', 'oct', 'nov', 'dec'])
-        if month in ['mar', 'apr', 'may']:
-            season = 'spring'
-        elif month in ['jun', 'jul', 'aug']:
-            season = 'summer'
-        elif month in ['sep', 'oct', 'nov']:
-            season = 'autumn'
-        else:
-            season = 'winter'
-        
-        input_dict[f'season_{season}'] = 1
-    
-    # Age Group
-    age_group_cols = [col for col in feature_columns if col.startswith('age_group_')]
-    if age_group_cols:
-        if age < 30:
-            age_group = 'young'
-        elif age < 50:
-            age_group = 'middle_aged'
-        elif age < 65:
-            age_group = 'senior'
-        else:
-            age_group = 'retirees'
-        
-        if f'age_group_{age_group}' in input_dict:
-            input_dict[f'age_group_{age_group}'] = 1
-    
+
     # =========================
     # FEATURE ENGINEERING
     # =========================
-    
-    # Total contacts
-    if 'total_contacts' in input_dict:
-        total_contacts = campaign + previous
-        input_dict['total_contacts'] = total_contacts
-    
-    # Contact efficiency
-    if 'contact_efficiency' in input_dict:
-        contact_efficiency = previous / (campaign + 1) if (campaign + 1) > 0 else 0
-        input_dict['contact_efficiency'] = contact_efficiency
-    
-    # Economic stability
-    if 'economic_stability' in input_dict:
-        economic_stability = emp_var_rate + cons_conf - euribor
-        input_dict['economic_stability'] = economic_stability
-    
-    # Contacted before
-    if 'contacted_before' in input_dict:
-        contacted_before = 1 if previous > 0 else 0
-        input_dict['contacted_before'] = contacted_before
-    
+
+    input_dict['economic_stability'] = emp_var_rate + cons_conf - euribor
+    input_dict['contacted_before'] = 1 if previous > 0 else 0
+    input_dict['prev_success'] = 1  # simple default (you can improve later)
+
+    # Age group
+    if age < 30:
+        group = 'young'
+    elif age < 50:
+        group = 'middle_aged'
+    elif age < 65:
+        group = 'senior'
+    else:
+        group = 'retirees'
+
+    if f'age_group_{group}' in input_dict:
+        input_dict[f'age_group_{group}'] = 1
+
     # =========================
     # PREDICTION
     # =========================
     if st.button("Predict Subscription"):
         try:
-            # Create DataFrame with the input data
             input_data = pd.DataFrame([input_dict])
-            
-            # Select the model
-            if model_choice == "XGBoost":
-                model = xgb_model
-            else:
-                model = lr_model
-            
-            # Make prediction
+
+            model = xgb_model if model_choice == "XGBoost" else lr_model
+
             prediction = model.predict(input_data)[0]
-            
-            # Get probability if available
-            if hasattr(model, 'predict_proba'):
-                prob = model.predict_proba(input_data)[0][1]
-            else:
-                prob = 0.0
-            
-            # Display result
+            prob = model.predict_proba(input_data)[0][1]
+
             if prediction == 1:
-                st.success(f"✅ Client WILL Subscribe to the product!")
-                st.metric("Probability of Subscription", f"{prob:.2%}")
+                st.success("✅ Client WILL Subscribe!")
+            
             else:
-                st.error(f"❌ Client WILL NOT Subscribe to the product!")
-                st.metric("Probability of Subscription", f"{prob:.2%}")
-                
+                st.error("❌ Client WILL NOT Subscribe!")
+            
+
         except Exception as e:
-            st.error(f"Error making prediction: {str(e)}")
-            st.info("Please make sure all inputs are filled correctly.")
+            st.error(f"Error: {str(e)}")
